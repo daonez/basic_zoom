@@ -13,14 +13,19 @@ app.get("/", (req, res) => {
 })
 app.get("/*", (req, res) => res.redirect("/"))
 const handleListen = () => console.log(`Listening on http://localhost:3000`)
-console.log("hello")
 const server = http.createServer(app)
 const wss = new WebSocket.Server({ server })
 
-const handleConnection = (socket) => {
-  console.log(socket)
-}
+const sockets = []
 
-wss.on("connection", handleConnection)
+wss.on("connection", (socket) => {
+  sockets.push(socket)
+  console.log("Connected to Browser")
+  socket.on("close", () => console.log("server closed!"))
+  socket.on("message", (message) => {
+    sockets.forEach((aSocket) => aSocket.send(message.toString("utf8")))
+    console.log(message.toString("utf8"))
+  })
+})
 
 server.listen(3000, handleListen)
