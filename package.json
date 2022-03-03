@@ -19,9 +19,11 @@
   },
   "dependencies": {
     "@socket.io/admin-ui": "^0.2.0",
+    "ejs": "^3.1.6",
     "express": "^4.17.3",
     "pug": "^3.0.2",
     "socket.io": "^4.4.1",
+    "uuid": "^8.3.2",
     "ws": "^8.5.0"
   }
 }
