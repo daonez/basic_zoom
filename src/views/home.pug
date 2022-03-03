@@ -8,9 +8,23 @@ html(lang="en")
     link(rel="stylesheet", href="https://unpkg.com/mvp.css")
   body 
   header
-      h1 Hello World!
+    h1 Hello World!
   main
-      button Hi
-
-
+    div#welcome
+      form
+        input(type="text" placeholder='room name' required)
+        button Enter Room
+      h4 Open Rooms:
+      ul
+    div#room
+      h3
+      ul
+      form#name
+        input(placeholder="nickname", required, type="text")
+        button Save
+      form#msg
+        input(placeholder="message", required, type="text")
+        button Send
+     
+  script(src="/socket.io/socket.io.js") 
   script(src='/public/js/app.js')
