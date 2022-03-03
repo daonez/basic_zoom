@@ -1,33 +1,32 @@
+const express = require("express")
+const app = express()
 const http = require("http")
 const SocketIO = require("socket.io")
-const express = require("express")
+const { v4: uuidV4 } = require("uuid")
+const server = http.createServer(app)
+const io = SocketIO(server)
 
-const app = express()
-
-app.set("view engine", "pug")
+app.set("view engine", "ejs")
 app.set("views", __dirname + "/views")
 app.use("/public", express.static(__dirname + "/public"))
-app.get("/", (_, res) => res.render("home"))
-app.get("/*", (_, res) => res.redirect("/"))
 
-const httpServer = http.createServer(app)
-const wsServer = SocketIO(httpServer)
+app.get("/", (req, res) => {
+  res.redirect(`/${uuidV4()}`)
+})
 
-wsServer.on("connection", (socket) => {
-  socket.on("join_room", (roomName) => {
-    socket.join(roomName)
-    socket.to(roomName).emit("welcome")
-  })
-  socket.on("offer", (offer, roomName) => {
-    socket.to(roomName).emit("offer", offer)
-  })
-  socket.on("answer", (answer, roomName) => {
-    socket.to(roomName).emit("answer", answer)
-  })
-  socket.on("ice", (ice, roomName) => {
-    socket.to(roomName).emit("ice", ice)
+app.get("/:room", (req, res) => {
+  res.render("room", { roomId: req.params.room })
+})
+
+io.on("connection", (socket) => {
+  socket.on("join-room", (roomId, userId) => {
+    socket.join(roomId)
+    socket.to(roomId).emit("user-connected", userId)
+
+    socket.on("disconnect", () => {
+      socket.to(roomId).emit("user-disconnected", userId)
+    })
   })
 })
 
-const handleListen = () => console.log(`Listening on http://localhost:3000`)
-httpServer.listen(3000, handleListen)
+server.listen(3000)
