@@ -1,10 +1,21 @@
 const http = require("http")
 const express = require("express")
 const app = express()
-const SocketIO = require("socket.io")
+const { Server } = require("socket.io")
 const server = http.createServer(app)
-const io = SocketIO(server)
 
+const { instrument } = require("@socket.io/admin-ui")
+
+const io = new Server(server, {
+  cors: {
+    origin: ["https://admin.socket.io"],
+    credentials: true,
+  },
+})
+
+instrument(io, {
+  auth: false,
+})
 app.set("view engine", "pug")
 app.set("views", __dirname + "/views")
 
@@ -16,6 +27,7 @@ app.get("/", (req, res) => {
 app.get("/*", (req, res) => res.redirect("/"))
 
 // 데이타 베이스에 연결했을때 방이름을 알아내기위해서 사용
+
 function publicRooms() {
   const {
     sockets: {
@@ -23,13 +35,16 @@ function publicRooms() {
     },
   } = io
   const publicRooms = []
-  rooms.forEach((value, key) => {
+  rooms.forEach((_, key) => {
     if (sids.get(key) === undefined) {
       publicRooms.push(key)
     }
-    console.log(publicRooms)
-    return publicRooms
   })
+  return publicRooms
+}
+
+function countRoom(roomName) {
+  io.sockets.adapter.rooms.get(roomName)?.size
 }
 
 io.on("connection", (socket) => {
@@ -39,11 +54,17 @@ io.on("connection", (socket) => {
   })
   socket.on("enter_room", (roomName, done) => {
     socket.join(roomName)
-    done()
-    socket.to(roomName).emit("welcome", socket.nickname)
+    done(countRoom(roomName))
+    socket.to(roomName).emit("welcome", socket.nickname, countRoom(roomName))
+    io.sockets.emit("room_change", publicRooms())
   })
   socket.on("disconnecting", () => {
-    socket.rooms.forEach((room) => socket.to(room).emit("bye", socket.nickname))
+    socket.rooms.forEach((room) =>
+      socket.to(room).emit("bye", socket.nickname, countRoom(room) - 1)
+    )
+  })
+  socket.on("disconnect", () => {
+    io.sockets.emit("room_change", publicRooms())
   })
   socket.on("new_message", (msg, room, done) => {
     socket.to(room).emit("new_message", `${socket.nickname}: ${msg}`)
